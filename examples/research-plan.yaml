@@ -1,0 +1,50 @@
+version: v1
+id: research-synthesis
+authority:
+  tools: [json_transform]
+  capabilities: [compute]
+limits:
+  max_concurrency: 3
+  max_replans: 0
+  max_node_growth: 0
+  max_replan_wall_time_ms: 30000
+nodes:
+  - id: source-a
+    objective: Record the first independently verified finding
+    inputs:
+      source: {kind: literal, value: source-a, type: string}
+      finding: {kind: literal, value: Parallel branches reduce elapsed research time, type: string}
+    output: object
+    tool: json_transform
+    authority: [compute]
+    verifier: {kind: json_schema}
+    output_schema:
+      type: object
+      required: [source, finding]
+  - id: source-b
+    objective: Record the second independently verified finding
+    inputs:
+      source: {kind: literal, value: source-b, type: string}
+      finding: {kind: literal, value: Explicit dependencies prevent premature synthesis, type: string}
+    output: object
+    tool: json_transform
+    authority: [compute]
+  - id: source-c
+    objective: Record the third independently verified finding
+    inputs:
+      source: {kind: literal, value: source-c, type: string}
+      finding: {kind: literal, value: Provenance makes each result inspectable, type: string}
+    output: object
+    tool: json_transform
+    authority: [compute]
+  - id: synthesis
+    objective: Package all verified findings
+    dependencies: [source-a, source-b, source-c]
+    inputs:
+      first: {kind: reference, node: source-a, type: object}
+      second: {kind: reference, node: source-b, type: object}
+      third: {kind: reference, node: source-c, type: object}
+    output: object
+    tool: json_transform
+    authority: [compute]
+    immutable: true

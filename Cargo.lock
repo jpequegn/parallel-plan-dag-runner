@@ -1191,6 +1191,9 @@ dependencies = [
  "runner-core",
  "serde",
  "serde_json",
+ "tempfile",
+ "tokio",
+ "tokio-util",
  "wasm-bindgen",
 ]
 

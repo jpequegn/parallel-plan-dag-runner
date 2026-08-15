@@ -1,0 +1,54 @@
+version: v1
+id: endurance-load-review
+authority:
+  tools: [calculator, json_transform]
+  capabilities: [compute]
+limits:
+  max_concurrency: 3
+  max_replans: 0
+  max_node_growth: 0
+  max_replan_wall_time_ms: 30000
+nodes:
+  - id: aerobic-load
+    objective: Calculate weekly aerobic load
+    inputs:
+      expression: {kind: literal, value: "42 * 1.2", type: string}
+    output: number
+    tool: calculator
+    authority: [compute]
+    verifier: {kind: numeric_range, minimum: 0, maximum: 200}
+  - id: recovery-load
+    objective: Calculate recovery allocation
+    inputs:
+      expression: {kind: literal, value: "7 * 3", type: string}
+    output: number
+    tool: calculator
+    authority: [compute]
+    verifier: {kind: numeric_range, minimum: 0, maximum: 100}
+  - id: strength-load
+    objective: Calculate weekly strength load
+    inputs:
+      expression: {kind: literal, value: "3 * 12", type: string}
+    output: number
+    tool: calculator
+    authority: [compute]
+    verifier: {kind: numeric_range, minimum: 0, maximum: 100}
+  - id: weekly-review
+    objective: Package independent workload indicators
+    dependencies: [aerobic-load, recovery-load, strength-load]
+    inputs:
+      aerobic: {kind: reference, node: aerobic-load, type: number}
+      recovery: {kind: reference, node: recovery-load, type: number}
+      strength: {kind: reference, node: strength-load, type: number}
+    output: object
+    tool: json_transform
+    authority: [compute]
+    verifier: {kind: json_schema}
+    output_schema:
+      type: object
+      required: [aerobic, recovery, strength]
+      properties:
+        aerobic: {type: number}
+        recovery: {type: number}
+        strength: {type: number}
+      additionalProperties: false
