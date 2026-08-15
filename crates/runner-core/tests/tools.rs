@@ -13,12 +13,14 @@ fn plan_for(tool: &str, capability: &str, output: ValueType) -> (Plan, Node) {
         dependencies: vec![],
         inputs: BTreeMap::new(),
         output,
+        output_schema: None,
         tool: tool.to_owned(),
         authority: BTreeSet::from([capability.to_owned()]),
         timeout_ms: 1_000,
         retry_budget: 0,
         verifier: VerifierSpec::Always,
         failure_policy: FailurePolicy::Stop,
+        degrade_value: None,
         immutable: false,
     };
     let plan = Plan {
@@ -31,6 +33,7 @@ fn plan_for(tool: &str, capability: &str, output: ValueType) -> (Plan, Node) {
         limits: PlanLimits::default(),
         nodes: vec![node.clone()],
         final_verifier: None,
+        final_output_schema: None,
     };
     (plan, node)
 }

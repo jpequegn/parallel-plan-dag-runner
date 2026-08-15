@@ -85,12 +85,14 @@ fn node(id: &str, dependencies: &[&str], timeout_ms: u64) -> Node {
         dependencies: dependencies.iter().map(ToString::to_string).collect(),
         inputs,
         output: ValueType::Object,
+        output_schema: None,
         tool: "controlled".to_owned(),
         authority: BTreeSet::from(["compute".to_owned()]),
         timeout_ms,
         retry_budget: 0,
         verifier: VerifierSpec::Always,
         failure_policy: FailurePolicy::Stop,
+        degrade_value: None,
         immutable: false,
     }
 }
@@ -114,6 +116,7 @@ fn diamond_plan(timeout_ms: u64) -> Plan {
             node("join", &["left", "right"], timeout_ms),
         ],
         final_verifier: None,
+        final_output_schema: None,
     }
 }
 

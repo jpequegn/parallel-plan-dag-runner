@@ -11,7 +11,8 @@ use serde_json::Value;
 use thiserror::Error;
 
 use crate::{
-    ExecutionMode, NodeState, Plan, ResolvedOutput, RunResult, RunStatus, canonical_digest,
+    ExecutionMode, NodeState, Plan, ResolvedOutput, RunResult, RunStatus, VerificationEvidence,
+    canonical_digest,
 };
 
 const EVENT_SCHEMA_VERSION: u32 = 1;
@@ -40,7 +41,7 @@ pub enum EventKind {
     VerifierResult {
         node_id: Option<String>,
         accepted: bool,
-        evidence: Value,
+        evidence: VerificationEvidence,
     },
     Retry {
         node_id: String,
@@ -54,6 +55,10 @@ pub enum EventKind {
     NodeSucceeded {
         node_id: String,
     },
+    NodeDegraded {
+        node_id: String,
+        reason: String,
+    },
     NodeFailed {
         node_id: String,
         error: String,
@@ -66,6 +71,10 @@ pub enum EventKind {
     },
     NodeCancelled {
         node_id: String,
+    },
+    NodeNeedsReplan {
+        node_id: String,
+        reason: String,
     },
     Cancellation,
     RunCompleted {
@@ -347,6 +356,15 @@ fn replay_events(events: &[EventEnvelope]) -> Result<RunResult, LedgerError> {
                 states.insert(node_id.clone(), NodeState::Succeeded);
                 completion_order.push(node_id.clone());
             }
+            EventKind::NodeDegraded { node_id, .. } => {
+                if !outputs.contains_key(node_id) {
+                    return Err(LedgerError::Corrupt(format!(
+                        "node '{node_id}' degraded without a recorded response"
+                    )));
+                }
+                states.insert(node_id.clone(), NodeState::Degraded);
+                completion_order.push(node_id.clone());
+            }
             EventKind::NodeFailed { node_id, error } => {
                 states.insert(node_id.clone(), NodeState::Failed(error.clone()));
                 completion_order.push(node_id.clone());
@@ -361,6 +379,10 @@ fn replay_events(events: &[EventEnvelope]) -> Result<RunResult, LedgerError> {
             }
             EventKind::NodeCancelled { node_id } => {
                 states.insert(node_id.clone(), NodeState::Cancelled);
+                completion_order.push(node_id.clone());
+            }
+            EventKind::NodeNeedsReplan { node_id, .. } => {
+                states.insert(node_id.clone(), NodeState::NeedsReplan);
                 completion_order.push(node_id.clone());
             }
             EventKind::RunCompleted { status } => terminal = Some(*status),
