@@ -1,0 +1,23 @@
+{
+  "name": "parallel-plan-dag-runner-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build:wasm": "wasm-pack build ../crates/runner-wasm --target web --out-dir ../../web/src/wasm --release",
+    "predev": "npm run build:wasm",
+    "dev": "vite",
+    "build": "npm run build:wasm && tsc --noEmit && vite build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "lucide": "^0.468.0"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.2",
+    "vite": "^8.2.1",
+    "vitest": "^4.0.0",
+    "wasm-pack": "^0.15.0"
+  }
+}

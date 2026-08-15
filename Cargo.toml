@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/runner-cli", "crates/runner-core"]
+members = ["crates/runner-cli", "crates/runner-core", "crates/runner-wasm"]
 resolver = "2"
 
 [workspace.package]
@@ -15,4 +15,3 @@ unsafe_code = "forbid"
 all = { level = "deny", priority = -1 }
 pedantic = { level = "deny", priority = -1 }
 module_name_repetitions = "allow"
-
