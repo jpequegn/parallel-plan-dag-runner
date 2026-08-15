@@ -1,0 +1,31 @@
+version: v1
+id: basic-plan
+authority:
+  tools: [calculator, json_transform]
+  capabilities: [compute]
+limits:
+  max_concurrency: 2
+  max_replans: 1
+  max_node_growth: 2
+nodes:
+  - id: subtotal
+    objective: Calculate the subtotal
+    inputs:
+      expression:
+        kind: literal
+        value: "40 + 2"
+        type: string
+    output: number
+    tool: calculator
+    authority: [compute]
+  - id: package
+    objective: Package the result
+    dependencies: [subtotal]
+    inputs:
+      value:
+        kind: reference
+        node: subtotal
+        type: number
+    output: object
+    tool: json_transform
+    authority: [compute]
