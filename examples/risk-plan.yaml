@@ -1,0 +1,54 @@
+version: v1
+id: risk-assessment
+authority:
+  tools: [calculator, json_transform]
+  capabilities: [compute]
+limits:
+  max_concurrency: 3
+  max_replans: 0
+  max_node_growth: 0
+  max_replan_wall_time_ms: 30000
+nodes:
+  - id: operational-risk
+    objective: Calculate the operational risk score
+    inputs:
+      expression: {kind: literal, value: "0.35 * 80", type: string}
+    output: number
+    tool: calculator
+    authority: [compute]
+    verifier: {kind: numeric_range, minimum: 0, maximum: 100}
+  - id: financial-risk
+    objective: Calculate the financial risk score
+    inputs:
+      expression: {kind: literal, value: "0.20 * 120", type: string}
+    output: number
+    tool: calculator
+    authority: [compute]
+    verifier: {kind: numeric_range, minimum: 0, maximum: 100}
+  - id: compliance-risk
+    objective: Calculate the compliance risk score
+    inputs:
+      expression: {kind: literal, value: "0.10 * 90", type: string}
+    output: number
+    tool: calculator
+    authority: [compute]
+    verifier: {kind: numeric_range, minimum: 0, maximum: 100}
+  - id: risk-register
+    objective: Assemble the independently calculated risk scores
+    dependencies: [operational-risk, financial-risk, compliance-risk]
+    inputs:
+      operational: {kind: reference, node: operational-risk, type: number}
+      financial: {kind: reference, node: financial-risk, type: number}
+      compliance: {kind: reference, node: compliance-risk, type: number}
+    output: object
+    tool: json_transform
+    authority: [compute]
+    verifier: {kind: json_schema}
+    output_schema:
+      type: object
+      required: [operational, financial, compliance]
+      properties:
+        operational: {type: number}
+        financial: {type: number}
+        compliance: {type: number}
+      additionalProperties: false
