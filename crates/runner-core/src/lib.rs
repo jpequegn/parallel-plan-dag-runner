@@ -1,10 +1,14 @@
 //! Typed plan validation and execution primitives.
 
 mod plan;
+mod tools;
 mod validation;
 
 pub use plan::{
     AuthorityPolicy, FailurePolicy, InputSpec, Node, Plan, PlanLimits, ValueType, VerifierSpec,
+};
+pub use tools::{
+    Provenance, ResolvedOutput, ToolError, ToolRegistry, canonical_digest, resolve_inputs,
 };
 pub use validation::{Diagnostic, ValidationError, parse_plan, plan_json_schema, validate_plan};
 
