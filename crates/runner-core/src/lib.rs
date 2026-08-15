@@ -1,9 +1,13 @@
 //! Typed plan validation and execution primitives.
 
+mod executor;
 mod plan;
 mod tools;
 mod validation;
 
+pub use executor::{
+    ExecutionError, ExecutionMode, Executor, NodeRunner, NodeState, RunResult, RunStatus,
+};
 pub use plan::{
     AuthorityPolicy, FailurePolicy, InputSpec, Node, Plan, PlanLimits, ValueType, VerifierSpec,
 };
