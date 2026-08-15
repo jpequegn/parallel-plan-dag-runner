@@ -87,6 +87,8 @@ pub enum ExecutionError {
     Validation(#[from] ValidationError),
     #[error("validated graph could not make progress")]
     Deadlock,
+    #[error("invalid seeded output for node '{0}'")]
+    InvalidSeed(String),
 }
 
 pub struct Executor<'a> {
@@ -173,13 +175,33 @@ impl<'a> Executor<'a> {
     ///
     /// # Errors
     /// Returns preflight validation failures or a scheduler deadlock.
-    #[allow(clippy::too_many_lines)]
     pub async fn execute(
         &self,
         plan: &Plan,
         cancellation: CancellationToken,
     ) -> Result<RunResult, ExecutionError> {
+        self.execute_seeded(plan, cancellation, BTreeMap::new())
+            .await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    pub(crate) async fn execute_seeded(
+        &self,
+        plan: &Plan,
+        cancellation: CancellationToken,
+        seeded_outputs: BTreeMap<String, ResolvedOutput>,
+    ) -> Result<RunResult, ExecutionError> {
         validate_plan(plan)?;
+        for (id, output) in &seeded_outputs {
+            let node = plan
+                .nodes
+                .iter()
+                .find(|node| node.id == *id)
+                .ok_or_else(|| ExecutionError::InvalidSeed(id.clone()))?;
+            if !node.output.accepts(&crate::ValueType::of(&output.value)) {
+                return Err(ExecutionError::InvalidSeed(id.clone()));
+            }
+        }
         let requested = self
             .concurrency_override
             .unwrap_or(plan.limits.max_concurrency);
@@ -190,15 +212,23 @@ impl<'a> Executor<'a> {
         let mut pending: BTreeMap<String, Node> = plan
             .nodes
             .iter()
+            .filter(|node| !seeded_outputs.contains_key(&node.id))
             .cloned()
             .map(|node| (node.id.clone(), node))
             .collect();
-        let mut states: BTreeMap<String, NodeState> = pending
-            .keys()
-            .cloned()
-            .map(|id| (id, NodeState::Pending))
+        let mut states: BTreeMap<String, NodeState> = plan
+            .nodes
+            .iter()
+            .map(|node| {
+                let state = if seeded_outputs.contains_key(&node.id) {
+                    NodeState::Succeeded
+                } else {
+                    NodeState::Pending
+                };
+                (node.id.clone(), state)
+            })
             .collect();
-        let mut outputs = BTreeMap::new();
+        let mut outputs = seeded_outputs;
         let mut started_order = Vec::new();
         let mut completion_order = Vec::new();
         let mut events = vec![EventKind::RunStarted {

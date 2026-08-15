@@ -12,6 +12,10 @@ fn default_timeout_ms() -> u64 {
     30_000
 }
 
+fn default_replan_wall_time_ms() -> u64 {
+    60_000
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ValueType {
@@ -134,6 +138,8 @@ pub struct PlanLimits {
     pub max_replans: u32,
     #[serde(default)]
     pub max_node_growth: usize,
+    #[serde(default = "default_replan_wall_time_ms")]
+    pub max_replan_wall_time_ms: u64,
 }
 
 impl Default for PlanLimits {
@@ -142,6 +148,7 @@ impl Default for PlanLimits {
             max_concurrency: default_concurrency(),
             max_replans: 0,
             max_node_growth: 0,
+            max_replan_wall_time_ms: default_replan_wall_time_ms(),
         }
     }
 }

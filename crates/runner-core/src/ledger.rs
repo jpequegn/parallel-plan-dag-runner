@@ -51,6 +51,7 @@ pub enum EventKind {
     Replan {
         failed_node: String,
         patch_digest: String,
+        removed_nodes: Vec<String>,
     },
     NodeSucceeded {
         node_id: String,
@@ -329,6 +330,7 @@ impl Ledger {
 fn replay_events(events: &[EventEnvelope]) -> Result<RunResult, LedgerError> {
     let mut states = BTreeMap::new();
     let mut outputs = BTreeMap::new();
+    let mut candidate_outputs = BTreeMap::new();
     let mut started_order = Vec::new();
     let mut completion_order = Vec::new();
     let mut terminal = None;
@@ -345,31 +347,35 @@ fn replay_events(events: &[EventEnvelope]) -> Result<RunResult, LedgerError> {
                 started_order.push(node_id.clone());
             }
             EventKind::ToolResponse { node_id, output } => {
-                outputs.insert(node_id.clone(), output.clone());
+                candidate_outputs.insert(node_id.clone(), output.clone());
             }
             EventKind::NodeSucceeded { node_id } => {
-                if !outputs.contains_key(node_id) {
-                    return Err(LedgerError::Corrupt(format!(
+                let output = candidate_outputs.remove(node_id).ok_or_else(|| {
+                    LedgerError::Corrupt(format!(
                         "node '{node_id}' succeeded without a recorded response"
-                    )));
-                }
+                    ))
+                })?;
+                outputs.insert(node_id.clone(), output);
                 states.insert(node_id.clone(), NodeState::Succeeded);
                 completion_order.push(node_id.clone());
             }
             EventKind::NodeDegraded { node_id, .. } => {
-                if !outputs.contains_key(node_id) {
-                    return Err(LedgerError::Corrupt(format!(
+                let output = candidate_outputs.remove(node_id).ok_or_else(|| {
+                    LedgerError::Corrupt(format!(
                         "node '{node_id}' degraded without a recorded response"
-                    )));
-                }
+                    ))
+                })?;
+                outputs.insert(node_id.clone(), output);
                 states.insert(node_id.clone(), NodeState::Degraded);
                 completion_order.push(node_id.clone());
             }
             EventKind::NodeFailed { node_id, error } => {
+                candidate_outputs.remove(node_id);
                 states.insert(node_id.clone(), NodeState::Failed(error.clone()));
                 completion_order.push(node_id.clone());
             }
             EventKind::NodeTimedOut { node_id } => {
+                candidate_outputs.remove(node_id);
                 states.insert(node_id.clone(), NodeState::TimedOut);
                 completion_order.push(node_id.clone());
             }
@@ -378,19 +384,29 @@ fn replay_events(events: &[EventEnvelope]) -> Result<RunResult, LedgerError> {
                 completion_order.push(node_id.clone());
             }
             EventKind::NodeCancelled { node_id } => {
+                candidate_outputs.remove(node_id);
                 states.insert(node_id.clone(), NodeState::Cancelled);
                 completion_order.push(node_id.clone());
             }
             EventKind::NodeNeedsReplan { node_id, .. } => {
+                candidate_outputs.remove(node_id);
                 states.insert(node_id.clone(), NodeState::NeedsReplan);
                 completion_order.push(node_id.clone());
             }
             EventKind::RunCompleted { status } => terminal = Some(*status),
+            EventKind::Replan { removed_nodes, .. } => {
+                for node_id in removed_nodes {
+                    states.remove(node_id);
+                    outputs.remove(node_id);
+                    candidate_outputs.remove(node_id);
+                }
+            }
             EventKind::ToolCall { .. }
             | EventKind::VerifierResult { .. }
-            | EventKind::Retry { .. }
-            | EventKind::Replan { .. }
             | EventKind::Cancellation => {}
+            EventKind::Retry { node_id, .. } => {
+                candidate_outputs.remove(node_id);
+            }
         }
     }
     let run_status =

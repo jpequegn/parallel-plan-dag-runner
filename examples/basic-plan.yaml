@@ -7,6 +7,7 @@ limits:
   max_concurrency: 2
   max_replans: 1
   max_node_growth: 2
+  max_replan_wall_time_ms: 30000
 nodes:
   - id: subtotal
     objective: Calculate the subtotal
