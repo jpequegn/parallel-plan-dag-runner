@@ -396,11 +396,11 @@ fn comparisons(fixtures: &[FixtureSpec], records: &[ExperimentRecord]) -> Vec<Fi
             let flawed = records.iter().find(|record| {
                 record.fixture_id == fixture.id && record.mode == ExperimentMode::FlawedDependency
             })?;
-            let parallel_speedup_milli = if parallel.wall_time_us == 0 {
-                0
-            } else {
-                sequential.wall_time_us.saturating_mul(1_000) / parallel.wall_time_us
-            };
+            let parallel_speedup_milli = sequential
+                .wall_time_us
+                .saturating_mul(1_000)
+                .checked_div(parallel.wall_time_us)
+                .unwrap_or(0);
             Some(FixtureComparison {
                 fixture_id: fixture.id.clone(),
                 graph_width: fixture.width,
