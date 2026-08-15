@@ -1,6 +1,7 @@
 //! Typed plan validation and execution primitives.
 
 mod executor;
+mod ledger;
 mod plan;
 mod tools;
 mod validation;
@@ -8,6 +9,7 @@ mod validation;
 pub use executor::{
     ExecutionError, ExecutionMode, Executor, NodeRunner, NodeState, RunResult, RunStatus,
 };
+pub use ledger::{EventEnvelope, EventKind, Ledger, LedgerError, RunSummary};
 pub use plan::{
     AuthorityPolicy, FailurePolicy, InputSpec, Node, Plan, PlanLimits, ValueType, VerifierSpec,
 };

@@ -14,6 +14,8 @@ anyhow = "1.0.100"
 clap = { version = "4.5.47", features = ["derive"] }
 runner-core = { path = "../runner-core" }
 serde_json = "1.0.145"
+tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
+tokio-util = "0.7.16"
 
 [dev-dependencies]
 assert_cmd = "2.0.17"
