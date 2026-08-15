@@ -106,6 +106,13 @@ pub fn validate_plan(plan: &Plan) -> Result<(), ValidationError> {
             "max_concurrency must be at least one",
         ));
     }
+    if plan.limits.max_replan_wall_time_ms == 0 {
+        diagnostics.push(Diagnostic::plan(
+            "invalid_limit",
+            "limits.max_replan_wall_time_ms",
+            "max_replan_wall_time_ms must be at least one",
+        ));
+    }
     if matches!(plan.final_verifier, Some(VerifierSpec::JsonSchema))
         && plan.final_output_schema.is_none()
     {

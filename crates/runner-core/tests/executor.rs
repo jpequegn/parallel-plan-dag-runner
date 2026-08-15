@@ -109,6 +109,7 @@ fn diamond_plan(timeout_ms: u64) -> Plan {
             max_concurrency: 2,
             max_replans: 0,
             max_node_growth: 0,
+            max_replan_wall_time_ms: 1_000,
         },
         nodes: vec![
             node("left", &[], timeout_ms),

@@ -3,6 +3,7 @@
 mod executor;
 mod ledger;
 mod plan;
+mod replanning;
 mod tools;
 mod validation;
 mod verification;
@@ -13,6 +14,10 @@ pub use executor::{
 pub use ledger::{EventEnvelope, EventKind, Ledger, LedgerError, RunSummary};
 pub use plan::{
     AuthorityPolicy, FailurePolicy, InputSpec, Node, Plan, PlanLimits, ValueType, VerifierSpec,
+};
+pub use replanning::{
+    FixtureReplanner, PatchOperation, PlanPatch, ReplanError, ReplanRequest, Replanner,
+    ReplanningExecutor, plan_digest,
 };
 pub use tools::{
     Provenance, ResolvedOutput, ToolError, ToolRegistry, canonical_digest, resolve_inputs,
