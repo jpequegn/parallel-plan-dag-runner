@@ -9,8 +9,8 @@ use tokio::time::timeout;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    Node, Plan, ResolvedOutput, ToolError, ToolRegistry, ValidationError, resolve_inputs,
-    validate_plan,
+    EventKind, Node, Plan, ResolvedOutput, ToolError, ToolRegistry, ValidationError,
+    resolve_inputs, validate_plan,
 };
 
 #[async_trait]
@@ -74,6 +74,7 @@ pub struct RunResult {
     pub outputs: BTreeMap<String, ResolvedOutput>,
     pub started_order: Vec<String>,
     pub completion_order: Vec<String>,
+    pub events: Vec<EventKind>,
 }
 
 #[derive(Debug, Error)]
@@ -152,26 +153,43 @@ impl<'a> Executor<'a> {
         let mut outputs = BTreeMap::new();
         let mut started_order = Vec::new();
         let mut completion_order = Vec::new();
+        let mut events = vec![EventKind::RunStarted {
+            plan_id: plan.id.clone(),
+            mode: self.mode,
+            nodes: plan.nodes.iter().map(|node| node.id.clone()).collect(),
+        }];
         let mut running: FuturesUnordered<NodeFuture<'_>> = FuturesUnordered::new();
         let mut stop_requested = false;
 
         while !pending.is_empty() || !running.is_empty() {
             if cancellation.is_cancelled() {
+                events.push(EventKind::Cancellation);
                 for id in pending.keys() {
                     states.insert(id.clone(), NodeState::Cancelled);
+                    completion_order.push(id.clone());
+                    events.push(EventKind::NodeCancelled {
+                        node_id: id.clone(),
+                    });
                 }
                 for (id, state) in &mut states {
                     if *state == NodeState::Running {
                         *state = NodeState::Cancelled;
                         completion_order.push(id.clone());
+                        events.push(EventKind::NodeCancelled {
+                            node_id: id.clone(),
+                        });
                     }
                 }
+                events.push(EventKind::RunCompleted {
+                    status: RunStatus::Cancelled,
+                });
                 return Ok(RunResult {
                     status: RunStatus::Cancelled,
                     states,
                     outputs,
                     started_order,
                     completion_order,
+                    events,
                 });
             }
 
@@ -195,7 +213,8 @@ impl<'a> Executor<'a> {
             for id in blocked {
                 pending.remove(&id);
                 states.insert(id.clone(), NodeState::Blocked);
-                completion_order.push(id);
+                completion_order.push(id.clone());
+                events.push(EventKind::NodeBlocked { node_id: id });
             }
 
             if !stop_requested {
@@ -218,13 +237,25 @@ impl<'a> Executor<'a> {
                         Ok(inputs) => inputs,
                         Err(error) => {
                             states.insert(id.clone(), NodeState::Failed(error.to_string()));
-                            completion_order.push(id);
+                            completion_order.push(id.clone());
+                            events.push(EventKind::NodeFailed {
+                                node_id: id,
+                                error: error.to_string(),
+                            });
                             stop_requested = true;
                             continue;
                         }
                     };
                     states.insert(id.clone(), NodeState::Running);
                     started_order.push(id.clone());
+                    events.push(EventKind::NodeStarted {
+                        node_id: id.clone(),
+                    });
+                    events.push(EventKind::ToolCall {
+                        node_id: id.clone(),
+                        tool: node.tool.clone(),
+                        inputs: inputs.clone(),
+                    });
                     let runner = self.runner;
                     let timeout_ms = node.timeout_ms;
                     running.push(
@@ -254,15 +285,25 @@ impl<'a> Executor<'a> {
                     completion_order.push(id.clone());
                     match result {
                         Ok(Ok(output)) => {
+                            events.push(EventKind::ToolResponse {
+                                node_id: id.clone(),
+                                output: output.clone(),
+                            });
                             outputs.insert(id.clone(), output);
-                            states.insert(id, NodeState::Succeeded);
+                            states.insert(id.clone(), NodeState::Succeeded);
+                            events.push(EventKind::NodeSucceeded { node_id: id });
                         }
                         Ok(Err(error)) => {
-                            states.insert(id, NodeState::Failed(error.to_string()));
+                            states.insert(id.clone(), NodeState::Failed(error.to_string()));
+                            events.push(EventKind::NodeFailed {
+                                node_id: id,
+                                error: error.to_string(),
+                            });
                             stop_requested = true;
                         }
                         Err(_) => {
-                            states.insert(id, NodeState::TimedOut);
+                            states.insert(id.clone(), NodeState::TimedOut);
+                            events.push(EventKind::NodeTimedOut { node_id: id });
                             stop_requested = true;
                         }
                     }
@@ -274,6 +315,9 @@ impl<'a> Executor<'a> {
             for id in pending.keys() {
                 states.insert(id.clone(), NodeState::Blocked);
                 completion_order.push(id.clone());
+                events.push(EventKind::NodeBlocked {
+                    node_id: id.clone(),
+                });
             }
         }
         let run_status = if states.values().all(|state| *state == NodeState::Succeeded) {
@@ -283,12 +327,14 @@ impl<'a> Executor<'a> {
         } else {
             RunStatus::Failed
         };
+        events.push(EventKind::RunCompleted { status: run_status });
         Ok(RunResult {
             status: run_status,
             states,
             outputs,
             started_order,
             completion_order,
+            events,
         })
     }
 }
