@@ -76,3 +76,22 @@ fn rejects_literal_type_mismatch_and_duplicate_ids() {
     assert!(codes.contains(&"literal_type_mismatch".to_owned()));
     assert!(codes.contains(&"duplicate_node".to_owned()));
 }
+
+#[test]
+fn rejects_incomplete_verification_and_degrade_contracts() {
+    let source = VALID
+        .replace(
+            "tool: calculator",
+            "verifier:\n      kind: json_schema\n    tool: calculator",
+        )
+        .replace("failure_policy: stop", "failure_policy: degrade");
+    let mut plan = parse_plan(&source, "yaml").expect("fixture should parse");
+    plan.nodes[0].failure_policy = runner_core::FailurePolicy::Degrade;
+    let error = validate_plan(&plan).expect_err("missing contracts");
+    let ValidationError::Invalid { diagnostics } = error else {
+        panic!("expected invalid plan");
+    };
+    let codes: Vec<_> = diagnostics.iter().map(|item| item.code.as_str()).collect();
+    assert!(codes.contains(&"missing_output_schema"));
+    assert!(codes.contains(&"missing_degrade_value"));
+}

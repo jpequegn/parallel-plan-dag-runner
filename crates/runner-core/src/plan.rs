@@ -60,7 +60,7 @@ pub enum InputSpec {
     },
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum VerifierSpec {
     #[default]
@@ -68,6 +68,15 @@ pub enum VerifierSpec {
     JsonSchema,
     Equals {
         expected: Value,
+    },
+    NumericRange {
+        #[serde(default)]
+        minimum: Option<f64>,
+        #[serde(default)]
+        maximum: Option<f64>,
+    },
+    Expression {
+        expression: String,
     },
 }
 
@@ -90,6 +99,8 @@ pub struct Node {
     #[serde(default)]
     pub inputs: BTreeMap<String, InputSpec>,
     pub output: ValueType,
+    #[serde(default)]
+    pub output_schema: Option<Value>,
     pub tool: String,
     #[serde(default)]
     pub authority: BTreeSet<String>,
@@ -101,6 +112,8 @@ pub struct Node {
     pub verifier: VerifierSpec,
     #[serde(default)]
     pub failure_policy: FailurePolicy,
+    #[serde(default)]
+    pub degrade_value: Option<Value>,
     #[serde(default)]
     pub immutable: bool,
 }
@@ -144,4 +157,6 @@ pub struct Plan {
     pub nodes: Vec<Node>,
     #[serde(default)]
     pub final_verifier: Option<VerifierSpec>,
+    #[serde(default)]
+    pub final_output_schema: Option<Value>,
 }

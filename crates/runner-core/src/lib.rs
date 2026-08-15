@@ -5,6 +5,7 @@ mod ledger;
 mod plan;
 mod tools;
 mod validation;
+mod verification;
 
 pub use executor::{
     ExecutionError, ExecutionMode, Executor, NodeRunner, NodeState, RunResult, RunStatus,
@@ -17,6 +18,7 @@ pub use tools::{
     Provenance, ResolvedOutput, ToolError, ToolRegistry, canonical_digest, resolve_inputs,
 };
 pub use validation::{Diagnostic, ValidationError, parse_plan, plan_json_schema, validate_plan};
+pub use verification::{VerificationEvidence, verify_final, verify_node};
 
 /// Returns the plan format version implemented by this crate.
 #[must_use]

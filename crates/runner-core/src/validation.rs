@@ -5,7 +5,7 @@ use schemars::schema_for;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{InputSpec, Plan, ValueType, plan_format_version};
+use crate::{FailurePolicy, InputSpec, Plan, ValueType, VerifierSpec, plan_format_version};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Diagnostic {
@@ -106,6 +106,15 @@ pub fn validate_plan(plan: &Plan) -> Result<(), ValidationError> {
             "max_concurrency must be at least one",
         ));
     }
+    if matches!(plan.final_verifier, Some(VerifierSpec::JsonSchema))
+        && plan.final_output_schema.is_none()
+    {
+        diagnostics.push(Diagnostic::plan(
+            "missing_final_output_schema",
+            "final_output_schema",
+            "json_schema final verifier requires final_output_schema",
+        ));
+    }
 
     let mut indices = HashMap::new();
     for (index, node) in plan.nodes.iter().enumerate() {
@@ -148,6 +157,33 @@ pub fn validate_plan(plan: &Plan) -> Result<(), ValidationError> {
                 &format!("nodes[{index}].timeout_ms"),
                 "timeout_ms must be at least one",
             ));
+        }
+        if matches!(node.verifier, VerifierSpec::JsonSchema) && node.output_schema.is_none() {
+            diagnostics.push(Diagnostic::node(
+                "missing_output_schema",
+                &node.id,
+                &format!("nodes[{index}].output_schema"),
+                "json_schema verifier requires output_schema",
+            ));
+        }
+        if matches!(node.failure_policy, FailurePolicy::Degrade) && node.degrade_value.is_none() {
+            diagnostics.push(Diagnostic::node(
+                "missing_degrade_value",
+                &node.id,
+                &format!("nodes[{index}].degrade_value"),
+                "degrade policy requires an explicit fallback value",
+            ));
+        }
+        if let Some(value) = &node.degrade_value {
+            let actual = ValueType::of(value);
+            if !node.output.accepts(&actual) {
+                diagnostics.push(Diagnostic::node(
+                    "degrade_type_mismatch",
+                    &node.id,
+                    &format!("nodes[{index}].degrade_value"),
+                    format!("node outputs {:?} but fallback is {actual:?}", node.output),
+                ));
+            }
         }
     }
 
