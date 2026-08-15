@@ -3,8 +3,8 @@ use std::{collections::BTreeMap, fs, path::PathBuf};
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand, ValueEnum};
 use runner_core::{
-    ExecutionMode, Executor, Ledger, Plan, ToolRegistry, ValidationError, parse_plan,
-    plan_json_schema, validate_plan,
+    ExecutionMode, Executor, ExperimentHarness, Ledger, Plan, ToolRegistry, ValidationError,
+    parse_plan, plan_json_schema, validate_plan,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -56,6 +56,13 @@ enum Command {
         #[arg(long, default_value = "runs.db")]
         db: PathBuf,
     },
+    /// Run the sequential/parallel/flawed-dependency fixture experiment.
+    Evaluate {
+        #[arg(long, default_value = "benchmarks/fixtures.json")]
+        fixtures: PathBuf,
+        #[arg(long, default_value = "reports/latest")]
+        output: PathBuf,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Default, ValueEnum)]
@@ -98,6 +105,17 @@ async fn main() -> Result<()> {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&Ledger::open(db)?.replay(&run_id)?)?
+            );
+        }
+        Some(Command::Evaluate { fixtures, output }) => {
+            let fixtures = ExperimentHarness::load(fixtures)?;
+            let report = ExperimentHarness::run(&fixtures).await?;
+            ExperimentHarness::write(&report, &output)?;
+            println!(
+                "evaluated {} fixtures across {} runs; reports: {}",
+                report.fixture_count,
+                report.run_count,
+                output.display()
             );
         }
         None => println!("Use --help to list available commands."),

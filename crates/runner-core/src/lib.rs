@@ -1,5 +1,6 @@
 //! Typed plan validation and execution primitives.
 
+mod evaluation;
 mod executor;
 mod ledger;
 mod plan;
@@ -8,6 +9,10 @@ mod tools;
 mod validation;
 mod verification;
 
+pub use evaluation::{
+    EvaluationError, EvaluationReport, ExperimentHarness, ExperimentMode, ExperimentRecord,
+    FixtureSpec,
+};
 pub use executor::{
     ExecutionError, ExecutionMode, Executor, NodeRunner, NodeState, RunResult, RunStatus,
 };

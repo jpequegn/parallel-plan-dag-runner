@@ -1,0 +1,20 @@
+[
+  {"id":"research-width-1","domain":"research","width":1,"tail_depth":1,"delay_ms":3},
+  {"id":"research-width-2","domain":"research","width":2,"tail_depth":2,"delay_ms":3},
+  {"id":"research-width-3","domain":"research","width":3,"tail_depth":1,"delay_ms":3},
+  {"id":"research-width-4","domain":"research","width":4,"tail_depth":3,"delay_ms":3},
+  {"id":"research-width-6","domain":"research","width":6,"tail_depth":2,"delay_ms":3},
+  {"id":"risk-width-1","domain":"risk","width":1,"tail_depth":2,"delay_ms":3},
+  {"id":"risk-width-2","domain":"risk","width":2,"tail_depth":1,"delay_ms":3},
+  {"id":"risk-width-3","domain":"risk","width":3,"tail_depth":3,"delay_ms":3},
+  {"id":"risk-width-5","domain":"risk","width":5,"tail_depth":2,"delay_ms":3},
+  {"id":"data-width-1","domain":"data_transform","width":1,"tail_depth":3,"delay_ms":3},
+  {"id":"data-width-2","domain":"data_transform","width":2,"tail_depth":2,"delay_ms":3},
+  {"id":"data-width-4","domain":"data_transform","width":4,"tail_depth":1,"delay_ms":3},
+  {"id":"data-width-5","domain":"data_transform","width":5,"tail_depth":3,"delay_ms":3},
+  {"id":"data-width-6","domain":"data_transform","width":6,"tail_depth":1,"delay_ms":3},
+  {"id":"endurance-width-1","domain":"endurance","width":1,"tail_depth":1,"delay_ms":3},
+  {"id":"endurance-width-2","domain":"endurance","width":2,"tail_depth":3,"delay_ms":3},
+  {"id":"endurance-width-3","domain":"endurance","width":3,"tail_depth":2,"delay_ms":3},
+  {"id":"endurance-width-6","domain":"endurance","width":6,"tail_depth":3,"delay_ms":3}
+]

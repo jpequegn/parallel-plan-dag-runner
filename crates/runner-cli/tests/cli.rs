@@ -77,3 +77,23 @@ fn runs_and_replays_from_sqlite() {
         .success()
         .stdout(predicate::str::contains("subtotal"));
 }
+
+#[test]
+fn evaluates_fixture_suite_from_one_command() {
+    let directory = tempfile::tempdir().expect("temporary directory");
+    Command::cargo_bin("plan-runner")
+        .expect("binary should build")
+        .args([
+            "evaluate",
+            "--fixtures",
+            "../../benchmarks/fixtures.json",
+            "--output",
+        ])
+        .arg(directory.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "evaluated 18 fixtures across 54 runs",
+        ));
+    assert!(directory.path().join("evaluation.md").exists());
+}
